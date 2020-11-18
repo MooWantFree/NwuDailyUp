@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>自动填报</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/favicon.png"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/gh/alphardex/aqua.css/dist/aqua.min.css"/>
+    <link REL="STYLESHEET" type="text/css" href="hh.css"/>
+</head>
+<body>
+
+<div class="container" id='app'>
+    <h2>xxx</h2>
+    <h1>晨午检自动填报</h1>
+    <div class="form-group">
+        <label for="first-name">学号</label
+        ><input
+            type="text"
+            class="form-control"
+            placeholder="2050110011"
+            v-model='stuid'
+            name="stuid"
+            pattern="^\d+$"
+            required
+    />
+    </div>
+    <div class="form-group">
+        <label for="password">密码</label>
+        <input
+                type="password"
+                v-model='password'
+                class="form-control"
+                name="password"
+        />
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" v-model="ns" value="s">
+        <label class="form-check-label" for="inlineRadio1">长安校区(南校区)</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" v-model="ns" value="n">
+        <label class="form-check-label" for="inlineRadio2">太白校区(北校区)</label>
+    </div>
+    <div class="form-submit-area">
+        <button type="button" class="btn btn-primary" v-on:click='start_post'>登录/注册</button>
+    </div>
+    <h4>取消/开启自动打卡:登录后点击相应操作</h4>
+    <h4>更改校区:输入账号密码后选择想要更改的校区然后登陆</h4>
+    <h4>联系方式:<b>example#apple.cn(请将#改成@)</b></h4></h4>
+</div>
+<script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.11/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10.9.1/dist/sweetalert2.all.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/0.19.2/axios.min.js"></script>
+
+<script>
+    var vm = new Vue({
+        el: '#app',
+        data: {
+            stuid: '',
+            password: '',
+            ns: '',
+            yn: 3,
+        },
+        methods: {
+            start_post: function () {
+                Swal.fire('请稍等', '正在向后台提交您的信息')
+                if (this.stuid.length && this.password.length && this.ns.length) {
+                    axios.post('https://exaple.com/loginweb', {
+                        stuid: this.stuid,
+                        pwd: this.password,
+                        ns: this.ns,
+                        yn: this.yn
+                    })
+                        .then((response) => {
+                            console.log(this)
+                            if (response.data.status == false) {
+                                if (response.data.result == '账号或密码错误') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: '错误',
+                                        text: '你输入的密码错误, 请检查后重新输入',
+                                        footer: '<a href="http://authserver.nwu.edu.cn/authserver/getBackPasswordMainPage.do">点此重置密码</a>'
+                                    })
+                                } else if (response.data.result == 'two_step') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: '错误',
+                                        text: '请关闭二级验证',
+                                        footer: '<a href="https://www.example.com/">点此查看关闭方法</a>'
+                                    })
+                                } else if (response.data.result == '需要验证码') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: '错误',
+                                        text: '需要验证码',
+                                        footer: '<a href="https://www.example.com">点此查看解决方案</a>'
+                                    })
+                                }
+                            } else {
+                                Swal.fire({
+                                    title: '填报状态\n' + response.data.result,
+                                    showDenyButton: true,
+                                    showCancelButton: true,
+                                    confirmButtonText: `开启填报(首次注册请点击这里)  `,
+                                    denyButtonText: `关闭填报`,
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        axios.post('https://exaple.com/loginweb', {
+                                            stuid: this.stuid,
+                                            pwd: this.password,
+                                            ns: this.ns,
+                                            yn: 1
+                                        })
+                                            .then(function (response) {
+                                                if (response.data.status == true)
+                                                    Swal.fire('已成功开启自动填报', '', 'success')
+                                            })
+                                            .catch(function () {
+                                                Swal.fire('请求失败,请重新尝试', '', 'error')
+                                            })
+
+                                    } else if (result.isDenied) {
+                                        axios.post('https://exaple.com/loginweb', {
+                                            stuid: this.stuid,
+                                            pwd: this.password,
+                                            ns: this.ns,
+                                            yn: 0
+                                        })
+                                            .then(function (response) {
+                                                if (response.data.status == true)
+                                                    Swal.fire('已成功关闭自动填报', '', 'error')
+                                            })
+                                            .catch(function () {
+                                                Swal.fire('请求失败,请重新尝试', '', 'error')
+                                            })
+                                    }
+                                })
+                            }
+                        })
+                        .catch(function () {
+                            Swal.fire('提交失败', '可能是服务器的错误, 如果持续出现请联系admin@nwu.icu', 'error')
+                        });
+                } else {
+                    Swal.fire(
+                        '你有信息未填写',
+                        '请按照提示填写信息',
+                        'error'
+                    )
+                }
+            },
+
+        }
+    })
+
+</script>
+</body>
+</html>
